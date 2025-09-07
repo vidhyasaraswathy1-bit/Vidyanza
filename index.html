@@ -30,12 +30,12 @@
         // This configuration is intended for web clients and is not secret.
         // Security is enforced by Firestore Security Rules.
         const firebaseConfig = {
-         apiKey: "AIzaSyB4EctByPJY37D9u4XPSG2v2sFcEyCLvUs",
-         authDomain: "courses-app-b862e.firebaseapp.com",
-         projectId: "courses-app-b862e",
-         storageBucket: "courses-app-b862e.appspot.com",
-         messagingSenderId: "268387672291",
-         appId: "1:268387672291:web:1fd3fba38b5a5b0525d6"
+          apiKey: "AIzaSyB4EctByPJY37D9u4XPSG2v2sFcEyCLvUs",
+          authDomain: "courses-app-b862e.firebaseapp.com",
+          projectId: "courses-app-b862e",
+          storageBucket: "courses-app-b862e.appspot.com",
+          messagingSenderId: "268387672291",
+          appId: "1:268387672291:web:1fd3fba38b5a5b0525d6"
         };
 
         let app, auth, db;
@@ -64,7 +64,15 @@
                 id: 'class-10', name: 'Class 10', price: 3000, validityDays: 365, 
                 subjects: { 
                     'physics': { name: 'Physics', videos: [ {title: 'Light - Reflection and Refraction', id: '1h-24Qy0I7I'}, {title: 'Human Eye and Colourful World', id: '1y0-Z2o0L3k'} ] },
-                    'maths': { name: 'Maths', videos: [ {title: 'Real Numbers', id: '3uS_FcpA_dI'}, {title: 'Polynomials', id: 'O7uX5S-dQbE'} ] }
+                    'maths': { name: 'Maths', videos: [ {title: 'Arithmetic Progressions', id: 'tP-HWOEa7nU'}, {title: 'Circles', id: 'fBQDjAhXhtY'}, {title: 'Triangles', id: 'HqN6_2-A_4k'} ] },
+                    'chemistry': { name: 'Chemistry', videos: [ {title: 'Chemical Reactions and Equations', id: 'nQ3qB_1I-dM'} ] }
+                } 
+            },
+            'class-11': { 
+                id: 'class-11', name: 'Class 11', price: 4000, validityDays: 365, 
+                subjects: { 
+                    'physics': { name: 'Physics', videos: [ {title: 'Units and Measurements', id: '2124I01a5jU'} ] },
+                    'chemistry': { name: 'Chemistry', videos: [ {title: 'Some Basic Concepts of Chemistry', id: 'FSyC_MddM6g'} ] }
                 } 
             },
         };
@@ -127,7 +135,7 @@
                     </div>
                 </nav>`;
         };
-        const HomePage = () => `<div class="container mx-auto px-6 py-24 text-center"><h1 class="text-4xl md:text-6xl font-extrabold mb-4"><span class="gradient-text">Kerala State Classes 8, 9 & 10</span></h1><p class="text-xl text-gray-400 mb-8 max-w-3xl mx-auto">Learn Smarter, Anytime.</p><div class="flex justify-center"><a href="#/courses" class="btn-premium text-white font-bold py-3 px-8 rounded-lg">Explore Courses</a></div></div><div class="container mx-auto px-6 py-16">${CoursesPage()}</div>`;
+        const HomePage = () => `<div class="container mx-auto px-6 py-24 text-center"><h1 class="text-4xl md:text-6xl font-extrabold mb-4"><span class="gradient-text">Kerala State Classes 8, 9, 10 & 11</span></h1><p class="text-xl text-gray-400 mb-8 max-w-3xl mx-auto">Learn Smarter, Anytime.</p><div class="flex justify-center"><a href="#/courses" class="btn-premium text-white font-bold py-3 px-8 rounded-lg">Explore Courses</a></div></div><div class="container mx-auto px-6 py-16">${CoursesPage()}</div>`;
         const LoginPage = () => `
             <div class="flex items-center justify-center py-12 px-4">
                 <div class="w-full max-w-md space-y-8 glass-card p-8">
@@ -165,20 +173,20 @@
             </div>`;
         const CoursesPage = () => {
              const courseCards = Object.values(COURSES).map(course => {
-                const enrollment = state.enrollments[course.id];
-                const isEnrolled = enrollment && enrollment.expiryDate && new Date(enrollment.expiryDate.toDate()) > new Date();
-                return `
-                    <a href="#/courses/${course.id}" class="block glass-card p-6 transform hover:scale-105 transition">
-                        <div class="flex justify-between items-start">
+                 const enrollment = state.enrollments[course.id];
+                 const isEnrolled = enrollment && enrollment.expiryDate && new Date(enrollment.expiryDate.toDate()) > new Date();
+                 return `
+                     <a href="#/courses/${course.id}" class="block glass-card p-6 transform hover:scale-105 transition">
+                         <div class="flex justify-between items-start">
                              <h3 class="text-2xl font-bold text-white mb-2">${course.name}</h3>
                              ${isEnrolled ? `<div class="flex items-center text-green-400 bg-green-500/10 px-3 py-1 rounded-full text-sm"><i data-feather="unlock" class="w-4 h-4 mr-2"></i>Unlocked</div>`
                                           : `<div class="flex items-center text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full text-sm"><i data-feather="lock" class="w-4 h-4 mr-2"></i>Locked</div>`}
-                        </div>
-                        <p class="text-gray-400 mb-4">Comprehensive video lessons for all subjects.</p>
-                        ${isEnrolled ? `<div class="text-sm">Expires in: ${getDaysLeft(enrollment.expiryDate)} days</div>` : `<div class="text-sm text-indigo-400">Click to enroll</div>`}
-                    </a>`;
-            }).join('');
-            return `<div class="container mx-auto"><h2 class="text-4xl font-bold text-center mb-12 gradient-text">Our Courses</h2><div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">${courseCards}</div></div>`;
+                         </div>
+                         <p class="text-gray-400 mb-4">Comprehensive video lessons for all subjects.</p>
+                         ${isEnrolled ? `<div class="text-sm">Expires in: ${getDaysLeft(enrollment.expiryDate)} days</div>` : `<div class="text-sm text-indigo-400">Click to enroll</div>`}
+                     </a>`;
+             }).join('');
+             return `<div class="container mx-auto"><h2 class="text-4xl font-bold text-center mb-12 gradient-text">Our Courses</h2><div class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">${courseCards}</div></div>`;
         };
         const CourseDetailPage = (course, enrollment) => {
              const isEnrolled = enrollment && enrollment.expiryDate && new Date(enrollment.expiryDate.toDate()) > new Date();
@@ -196,8 +204,8 @@
                      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
                          <div><h2 class="text-4xl font-bold gradient-text">${course.name}</h2><p class="text-gray-400">Select a lesson to begin.</p></div>
                          ${isEnrolled ? `<div class="glass-card p-4 mt-4 md:mt-0 text-center"><div class="text-3xl font-bold text-green-400">${getDaysLeft(enrollment.expiryDate)}</div><div class="text-sm">Days Left</div></div>`
-                          : isAdminNotEnrolled ? `<button id="admin-enroll-btn" data-course-id="${course.id}" class="mt-4 md:mt-0 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-6 rounded-lg">Admin Enroll</button>`
-                          : `<a href="#/payment/${course.id}" class="mt-4 md:mt-0 btn-premium text-white font-bold py-3 px-6 rounded-lg">Buy Course (₹${course.price})</a>`}
+                         : isAdminNotEnrolled ? `<button id="admin-enroll-btn" data-course-id="${course.id}" class="mt-4 md:mt-0 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-6 rounded-lg">Admin Enroll</button>`
+                         : `<a href="#/payment/${course.id}" class="mt-4 md:mt-0 btn-premium text-white font-bold py-3 px-6 rounded-lg">Buy Course (₹${course.price})</a>`}
                      </div>
                      <div id="video-player-container" class="glass-card p-4 aspect-video mb-8 ${isEnrolled ? '' : 'hidden'}"><p class="flex items-center justify-center h-full text-gray-400"><i data-feather="film" class="w-10 h-10 mr-4"></i>Select a video to start</p></div>
                      <div class="grid lg:grid-cols-2 gap-8">${subjectHtml}</div>
@@ -267,8 +275,8 @@
                         </div>
                     </div>
                     <div class="mb-12">
-                         <h3 class="text-2xl font-semibold mb-4 text-pink-400">Pending Payments</h3>
-                         <div class="glass-card overflow-x-auto"><table class="min-w-full divide-y divide-gray-700"><thead class="bg-gray-800/50"><tr><th class="px-6 py-3 text-left">User Email</th><th class="px-6 py-3 text-left">Course</th><th class="px-6 py-3 text-left">Transaction ID</th><th class="px-6 py-3 text-left">Date</th><th></th></tr></thead><tbody class="divide-y divide-gray-700">${paymentsRows}</tbody></table></div>
+                        <h3 class="text-2xl font-semibold mb-4 text-pink-400">Pending Payments</h3>
+                        <div class="glass-card overflow-x-auto"><table class="min-w-full divide-y divide-gray-700"><thead class="bg-gray-800/50"><tr><th class="px-6 py-3 text-left">User Email</th><th class="px-6 py-3 text-left">Course</th><th class="px-6 py-3 text-left">Transaction ID</th><th class="px-6 py-3 text-left">Date</th><th></th></tr></thead><tbody class="divide-y divide-gray-700">${paymentsRows}</tbody></table></div>
                     </div>
                 </div>`;
         };
@@ -573,4 +581,3 @@
 
 </body>
 </html>
-
