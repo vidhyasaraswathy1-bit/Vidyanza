@@ -352,7 +352,13 @@
             try {
                 if (user) {
                     const userDocSnap = await getDoc(doc(db, "users", user.uid));
-                    if (!userDocSnap.exists()) throw new Error("User profile not found in database.");
+                    if (!userDocSnap.exists()) {
+                        // This can happen if Firestore doc creation fails after auth creation.
+                        // Forcing a logout is a safe way to handle this inconsistent state.
+                        console.error("User exists in Auth but not in Firestore. Forcing logout.");
+                        await signOut(auth);
+                        return; // Stop further execution
+                    }
                     
                     state.currentUser = user;
                     state.userData = userDocSnap.data();
@@ -385,19 +391,9 @@
                 if (auth.currentUser) await signOut(auth).catch(e => console.error("Forced sign out failed", e));
             } finally {
                 state.isAuthReady = true;
-                const redirectPath = sessionStorage.getItem('postLoginRedirect');
-
-                if (redirectPath && state.currentUser) {
-                    sessionStorage.removeItem('postLoginRedirect');
-                    navigate(redirectPath);
-                } else {
-                    const currentPath = window.location.hash.slice(1) || '/';
-                    if (state.currentUser && (currentPath === 'login' || currentPath === 'signup')) {
-                        navigate('/');
-                    } else {
-                        router();
-                    }
-                }
+                // onAuthChange now simply updates state and re-renders the current page.
+                // Navigation is now handled directly by the login/signup/logout functions.
+                router();
             }
         }
         
@@ -414,6 +410,14 @@
             
             try {
                 await signInWithEmailAndPassword(auth, form.elements['login-email'].value, form.elements['login-password'].value);
+                // Explicitly navigate after successful login.
+                const redirectPath = sessionStorage.getItem('postLoginRedirect');
+                if (redirectPath) {
+                    sessionStorage.removeItem('postLoginRedirect');
+                    navigate(redirectPath);
+                } else {
+                    navigate('/');
+                }
             } catch (error) {
                 errorEl.textContent = "Invalid email or password.";
                 buttonText.textContent = 'Login';
@@ -439,6 +443,8 @@
             try {
                 const cred = await createUserWithEmailAndPassword(auth, email, password);
                 await setDoc(doc(db, "users", cred.user.uid), { name, email, role: 'student', createdAt: serverTimestamp() });
+                // Explicitly navigate to home page after successful signup.
+                navigate('/');
             } catch (error) {
                 errorEl.textContent = error.message;
                 buttonText.textContent = 'Sign Up';
@@ -546,4 +552,3 @@
     </script>
 </body>
 </html>
-
