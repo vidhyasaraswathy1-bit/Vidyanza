@@ -1,1 +1,549 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kerala State Syllabus - Learn Smarter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0a092d; background-image: radial-gradient(circle at 25% 15%, rgba(67, 56, 202, 0.4) 0%, rgba(67, 56, 202, 0) 50%), radial-gradient(circle at 75% 85%, rgba(219, 39, 119, 0.3) 0%, rgba(219, 39, 119, 0) 50%); }
+        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem; }
+        .btn-premium { background-image: linear-gradient(to right, #4f46e5, #c026d3); }
+        .btn-premium:hover { background-image: linear-gradient(to right, #c026d3, #4f46e5); }
+        .gradient-text { background-image: linear-gradient(to right, #818cf8, #f472b6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .btn-loading { cursor: not-allowed; opacity: 0.7; }
+    </style>
+</head>
+<body class="text-gray-200 antialiased">
+    <div id="app"><div class="flex items-center justify-center min-h-screen"><div class="ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32 animate-spin"></div></div></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, getDocs, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // --- Your Firebase Configuration ---
+        // This configuration is intended for web clients and is not secret.
+        // Security is enforced by Firestore Security Rules.
+        const firebaseConfig = {
+         apiKey: "AIzaSyB4EctByPJY37D9u4XPSG2v2sFcEyCLvUs",
+         authDomain: "courses-app-b862e.firebaseapp.com",
+         projectId: "courses-app-b862e",
+         storageBucket: "courses-app-b862e.appspot.com",
+         messagingSenderId: "268387672291",
+         appId: "1:268387672291:web:1fd3fba38b5a5b0525d6"
+        };
+
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) { document.getElementById('app').innerHTML = `<div class="p-8 text-center text-red-500">Error connecting to services.</div>`; }
+
+        const COURSES = {
+            'class-8': { 
+                id: 'class-8', name: 'Class 8', price: 3000, validityDays: 365, 
+                subjects: { 
+                    'physics': { name: 'Physics', videos: [ {title: 'Force and Pressure', id: 'ky95S-eRwa4'}, {title: 'Friction', id: 'eM7z_43Hn0M'} ] },
+                    'chemistry': { name: 'Chemistry', videos: [ {title: 'Synthetic Fibres and Plastics', id: 'j-p2pT6xHYc'}, {title: 'Materials: Metals and Non-Metals', id: 'v6UP62_G3pA'} ] }
+                }
+            },
+            'class-9': { 
+                id: 'class-9', name: 'Class 9', price: 3000, validityDays: 365, 
+                subjects: {
+                    'physics': { name: 'Physics', videos: [ {title: 'Motion', id: '4xIHgj2x6v4'}, {title: 'Force and Laws of Motion', id: 'Q3_sMTE33jY'} ] },
+                    'biology': { name: 'Biology', videos: [ {title: 'The Fundamental Unit of Life', id: 'z-zB-aVq1gU'}, {title: 'Tissues', id: 'cRIWfLpM8aU'} ] }
+                } 
+            },
+            'class-10': { 
+                id: 'class-10', name: 'Class 10', price: 3000, validityDays: 365, 
+                subjects: { 
+                    'physics': { name: 'Physics', videos: [ {title: 'Light - Reflection and Refraction', id: '1h-24Qy0I7I'}, {title: 'Human Eye and Colourful World', id: '1y0-Z2o0L3k'} ] },
+                    'maths': { name: 'Maths', videos: [ {title: 'Real Numbers', id: '3uS_FcpA_dI'}, {title: 'Polynomials', id: 'O7uX5S-dQbE'} ] }
+                } 
+            },
+        };
+
+        const state = {
+            currentUser: null, userData: null, enrollments: {},
+            admin: { users: [], payments: [], paymentSettings: { paymentLink: '' } },
+            isAuthReady: false,
+        };
+        
+        function navigate(path) { window.location.hash = path; }
+
+        async function router() {
+            if (!state.isAuthReady) return;
+            const path = window.location.hash.slice(1) || '/';
+            const [mainPath, subPath] = path.split('/').filter(p => p);
+            const appContainer = document.getElementById('app');
+            appContainer.innerHTML = ''; 
+            renderNavbar();
+            switch (mainPath) {
+                case 'login': appContainer.insertAdjacentHTML('beforeend', LoginPage()); attachLoginHandlers(); break;
+                case 'signup': appContainer.insertAdjacentHTML('beforeend', SignupPage()); attachSignupHandlers(); break;
+                case 'courses':
+                    if (subPath && COURSES[subPath]) renderCourseDetail(subPath);
+                    else appContainer.insertAdjacentHTML('beforeend', CoursesPage());
+                    break;
+                case 'payment':
+                    if (subPath && COURSES[subPath]) await renderPaymentPage(subPath);
+                    else navigate('/courses');
+                    break;
+                case 'admin':
+                    if (state.userData?.role === 'admin') await renderAdminDashboard();
+                    else appContainer.insertAdjacentHTML('beforeend', HomePage());
+                    break;
+                default: appContainer.insertAdjacentHTML('beforeend', HomePage());
+            }
+            feather.replace();
+        }
+        
+        const Navbar = () => {
+            const { currentUser, userData } = state;
+            return `
+                <nav class="bg-gray-900/30 backdrop-blur-lg sticky top-0 z-50 border-b border-white/10">
+                    <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+                        <a href="#/" class="text-2xl font-bold gradient-text">EduKerala</a>
+                        <div class="hidden md:flex items-center space-x-8">
+                            <a href="#/" class="hover:text-pink-400 transition">Home</a>
+                            <a href="#/courses" class="hover:text-pink-400 transition">Courses</a>
+                             ${userData?.role === 'admin' ? `<a href="#/admin" class="hover:text-pink-400 transition">Admin</a>` : ''}
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            ${currentUser ? `
+                                <span class="hidden sm:block">Welcome, ${userData?.name || ''}</span>
+                                <button id="logout-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition">Logout</button>
+                            ` : `
+                                <a href="#/login" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition">Login</a>
+                                <a href="#/signup" class="btn-premium text-white font-bold py-2 px-4 rounded-lg transition hidden sm:block">Sign Up</a>
+                            `}
+                        </div>
+                    </div>
+                </nav>`;
+        };
+        const HomePage = () => `<div class="container mx-auto px-6 py-24 text-center"><h1 class="text-4xl md:text-6xl font-extrabold mb-4"><span class="gradient-text">Kerala State Classes 8, 9 & 10</span></h1><p class="text-xl text-gray-400 mb-8 max-w-3xl mx-auto">Learn Smarter, Anytime.</p><div class="flex justify-center"><a href="#/courses" class="btn-premium text-white font-bold py-3 px-8 rounded-lg">Explore Courses</a></div></div><div class="container mx-auto px-6 py-16">${CoursesPage()}</div>`;
+        const LoginPage = () => `
+            <div class="flex items-center justify-center py-12 px-4">
+                <div class="w-full max-w-md space-y-8 glass-card p-8">
+                    <h2 class="mt-6 text-center text-3xl font-extrabold gradient-text">Log in</h2>
+                    <form id="login-form" class="mt-8 space-y-6">
+                        <input id="login-email" type="email" autocomplete="email" required class="w-full px-3 py-3 border border-gray-700 bg-gray-800 rounded-md" placeholder="Email address">
+                        <div class="relative">
+                            <input id="login-password" type="password" autocomplete="current-password" required class="w-full px-3 py-3 border border-gray-700 bg-gray-800 rounded-md" placeholder="Password">
+                            <span class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" id="toggle-login-password"><i data-feather="eye" class="h-5 w-5 text-gray-400"></i></span>
+                        </div>
+                        <a href="#" id="forgot-password-link" class="text-sm text-indigo-400 hover:text-indigo-300 block text-right">Forgot password?</a>
+                        <button type="submit" class="w-full flex justify-center py-3 px-4 rounded-md text-white btn-premium"><span class="btn-text">Login</span></button>
+                        <p id="login-message" class="text-green-400 text-sm mt-2 text-center"></p>
+                        <p id="login-error" class="text-red-500 text-sm mt-2 text-center"></p>
+                        <p class="text-center text-sm">No account? <a href="#/signup" class="font-medium text-indigo-400">Sign up</a></p>
+                    </form>
+                </div>
+            </div>`;
+        const SignupPage = () => `
+            <div class="flex items-center justify-center py-12 px-4">
+                <div class="w-full max-w-md space-y-8 glass-card p-8">
+                    <h2 class="mt-6 text-center text-3xl font-extrabold gradient-text">Create an account</h2>
+                    <form id="signup-form" class="mt-8 space-y-6">
+                        <input id="signup-name" type="text" autocomplete="name" required class="w-full px-3 py-3 border border-gray-700 bg-gray-800 rounded-md" placeholder="Full Name">
+                        <input id="signup-email" type="email" autocomplete="email" required class="w-full px-3 py-3 border border-gray-700 bg-gray-800 rounded-md" placeholder="Email address">
+                        <div class="relative">
+                             <input id="signup-password" type="password" autocomplete="new-password" required class="w-full px-3 py-3 border border-gray-700 bg-gray-800 rounded-md" placeholder="Password">
+                            <span class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" id="toggle-signup-password"><i data-feather="eye" class="h-5 w-5 text-gray-400"></i></span>
+                        </div>
+                        <button type="submit" class="w-full flex justify-center py-3 px-4 rounded-md text-white btn-premium"><span class="btn-text">Sign Up</span></button>
+                        <p id="signup-error" class="text-red-500 text-sm mt-2 text-center"></p>
+                        <p class="text-center text-sm">Have an account? <a href="#/login" class="font-medium text-indigo-400">Log in</a></p>
+                    </form>
+                </div>
+            </div>`;
+        const CoursesPage = () => {
+             const courseCards = Object.values(COURSES).map(course => {
+                const enrollment = state.enrollments[course.id];
+                const isEnrolled = enrollment && enrollment.expiryDate && new Date(enrollment.expiryDate.toDate()) > new Date();
+                return `
+                    <a href="#/courses/${course.id}" class="block glass-card p-6 transform hover:scale-105 transition">
+                        <div class="flex justify-between items-start">
+                             <h3 class="text-2xl font-bold text-white mb-2">${course.name}</h3>
+                             ${isEnrolled ? `<div class="flex items-center text-green-400 bg-green-500/10 px-3 py-1 rounded-full text-sm"><i data-feather="unlock" class="w-4 h-4 mr-2"></i>Unlocked</div>`
+                                          : `<div class="flex items-center text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full text-sm"><i data-feather="lock" class="w-4 h-4 mr-2"></i>Locked</div>`}
+                        </div>
+                        <p class="text-gray-400 mb-4">Comprehensive video lessons for all subjects.</p>
+                        ${isEnrolled ? `<div class="text-sm">Expires in: ${getDaysLeft(enrollment.expiryDate)} days</div>` : `<div class="text-sm text-indigo-400">Click to enroll</div>`}
+                    </a>`;
+            }).join('');
+            return `<div class="container mx-auto"><h2 class="text-4xl font-bold text-center mb-12 gradient-text">Our Courses</h2><div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">${courseCards}</div></div>`;
+        };
+        const CourseDetailPage = (course, enrollment) => {
+             const isEnrolled = enrollment && enrollment.expiryDate && new Date(enrollment.expiryDate.toDate()) > new Date();
+             const isAdminNotEnrolled = state.userData?.role === 'admin' && !isEnrolled;
+             const subjectHtml = Object.values(course.subjects || {}).map(subject => {
+                 const videoListHtml = (subject.videos || []).map(video => isEnrolled ?
+                     `<div class="flex items-center space-x-4 p-4 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition cursor-pointer video-item" data-video-id="${video.id}"><i data-feather="play-circle" class="w-8 h-8 text-indigo-400"></i><span>${video.title}</span></div>` :
+                     `<div class="flex items-center space-x-4 p-4 bg-gray-800/50 rounded-lg opacity-50"><i data-feather="lock" class="w-8 h-8 text-gray-500"></i><span>${video.title}</span></div>`
+                 ).join('');
+                 return `<div class="glass-card p-6"><h4 class="text-2xl font-semibold mb-4 text-pink-400">${subject.name}</h4><div class="space-y-3">${videoListHtml}</div></div>`;
+             }).join('');
+
+             return `
+                 <div class="container mx-auto px-4 py-12">
+                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+                         <div><h2 class="text-4xl font-bold gradient-text">${course.name}</h2><p class="text-gray-400">Select a lesson to begin.</p></div>
+                         ${isEnrolled ? `<div class="glass-card p-4 mt-4 md:mt-0 text-center"><div class="text-3xl font-bold text-green-400">${getDaysLeft(enrollment.expiryDate)}</div><div class="text-sm">Days Left</div></div>`
+                          : isAdminNotEnrolled ? `<button id="admin-enroll-btn" data-course-id="${course.id}" class="mt-4 md:mt-0 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-6 rounded-lg">Admin Enroll</button>`
+                          : `<a href="#/payment/${course.id}" class="mt-4 md:mt-0 btn-premium text-white font-bold py-3 px-6 rounded-lg">Buy Course (₹${course.price})</a>`}
+                     </div>
+                     <div id="video-player-container" class="glass-card p-4 aspect-video mb-8 ${isEnrolled ? '' : 'hidden'}"><p class="flex items-center justify-center h-full text-gray-400"><i data-feather="film" class="w-10 h-10 mr-4"></i>Select a video to start</p></div>
+                     <div class="grid lg:grid-cols-2 gap-8">${subjectHtml}</div>
+                 </div>`;
+        };
+        const PaymentPage = (course, settings) => {
+            const { paymentLink } = settings;
+            let upiId = 'Not Set by Admin';
+            let qrCodeUrl = 'https://placehold.co/300x300/1f2937/ffffff?text=QR+Not+Available';
+            
+            if (paymentLink && paymentLink.startsWith('upi://')) {
+                const match = paymentLink.match(/pa=([^&]+)/);
+                if (match && match[1]) {
+                    upiId = match[1];
+                    qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(paymentLink)}`;
+                }
+            }
+
+            return `
+            <div class="container mx-auto px-4 py-16">
+                 <h2 class="text-3xl md:text-4xl font-bold text-center mb-4 gradient-text">Enroll in ${course.name}</h2>
+                 <p class="text-center text-gray-400 max-w-2xl mx-auto mb-12">Pay ₹${course.price} and submit the details below.</p>
+                 <div class="grid md:grid-cols-2 gap-12 items-center">
+                     <div class="glass-card p-8 text-center">
+                         <h3 class="text-2xl font-semibold mb-4">Scan to Pay with UPI</h3>
+                         <img src="${qrCodeUrl}" alt="UPI QR Code" class="mx-auto rounded-lg bg-white p-2">
+                         <p class="mt-4 text-lg font-bold">${upiId}</p>
+                         <div class="mt-6"><a href="${paymentLink || '#'}" class="btn-premium text-white font-semibold py-3 px-8 rounded-lg flex items-center justify-center gap-2 w-full sm:w-auto mx-auto"><i data-feather="smartphone" class="w-5 h-5"></i> Pay Now</a></div>
+                     </div>
+                     <div class="glass-card p-8">
+                         <h3 class="text-2xl font-semibold mb-6">Submit Payment Details</h3>
+                         <form id="payment-form" class="space-y-6">
+                              <input type="text" id="transactionId" required class="w-full px-3 py-3 border border-gray-700 bg-gray-800 rounded-md" placeholder="Transaction ID / UTR">
+                              <p class="text-xs text-gray-500">Access will be approved by an admin within 24 hours.</p>
+                              <button type="submit" class="w-full btn-premium text-white font-bold py-3 px-6 rounded-lg">Submit</button>
+                             <p id="payment-message" class="text-center mt-4"></p>
+                         </form>
+                     </div>
+                 </div>
+            </div>`;
+        };
+        const AdminDashboardPage = () => {
+            const { payments, paymentSettings } = state.admin;
+            const paymentsRows = payments.map(p => `
+                <tr class="hover:bg-gray-800/20">
+                    <td class="px-6 py-4 whitespace-nowrap">${p.userEmail}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${COURSES[p.courseId]?.name || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap font-mono">${p.transactionId}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${p.submittedAt ? p.submittedAt.toDate().toLocaleString() : 'N/A'}</td>
+                    <td class="px-6 py-4 text-right"><button data-payment-id="${p.id}" data-user-id="${p.userId}" data-course-id="${p.courseId}" class="approve-btn bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">Approve</button></td>
+                </tr>`).join('');
+
+            return `
+                <div class="container mx-auto px-4 py-12">
+                    <h2 class="text-4xl font-bold gradient-text mb-8">Admin Dashboard</h2>
+                    <div class="mb-12">
+                        <h3 class="text-2xl font-semibold mb-4 text-pink-400">Payment Settings</h3>
+                        <div class="glass-card p-8">
+                           <h4 class="text-xl font-bold mb-4">Manage Payment Link</h4>
+                           <form id="payment-settings-form" class="space-y-4">
+                                <label for="payment-link" class="block text-sm font-medium text-gray-300">Full UPI Payment Link</label>
+                                <input type="text" id="payment-link" value="${paymentSettings.paymentLink}" placeholder="upi://pay?pa=your-id@oksbi..." class="w-full px-3 py-2 border border-gray-700 bg-gray-800 rounded-md">
+                                <p class="text-xs text-gray-400">The QR code is generated automatically from this link.</p>
+                                <button type="submit" class="btn-premium text-white font-bold py-2 px-6 rounded-lg">Save Link</button>
+                                <p id="settings-message" class="text-sm mt-2 inline-block ml-4"></p>
+                           </form>
+                        </div>
+                    </div>
+                    <div class="mb-12">
+                         <h3 class="text-2xl font-semibold mb-4 text-pink-400">Pending Payments</h3>
+                         <div class="glass-card overflow-x-auto"><table class="min-w-full divide-y divide-gray-700"><thead class="bg-gray-800/50"><tr><th class="px-6 py-3 text-left">User Email</th><th class="px-6 py-3 text-left">Course</th><th class="px-6 py-3 text-left">Transaction ID</th><th class="px-6 py-3 text-left">Date</th><th></th></tr></thead><tbody class="divide-y divide-gray-700">${paymentsRows}</tbody></table></div>
+                    </div>
+                </div>`;
+        };
+        
+        async function renderAdminDashboard() {
+            document.getElementById('app').insertAdjacentHTML('beforeend', AdminDashboardPage());
+            attachAdminHandlers();
+        }
+        async function renderPaymentPage(courseId) {
+            const course = COURSES[courseId];
+            const settingsDoc = await getDoc(doc(db, "settings", "payment"));
+            const settings = settingsDoc.exists() ? settingsDoc.data() : { paymentLink: '' };
+            document.getElementById('app').insertAdjacentHTML('beforeend', PaymentPage(course, settings));
+            attachPaymentHandlers(courseId);
+
+            const pendingTxId = sessionStorage.getItem('pendingTransactionId');
+            if (pendingTxId) {
+                const txInput = document.getElementById('transactionId');
+                if (txInput) {
+                    txInput.value = pendingTxId;
+                }
+                sessionStorage.removeItem('pendingTransactionId');
+            }
+        }
+        function renderNavbar() {
+            const navContainer = document.createElement('div');
+            navContainer.innerHTML = Navbar();
+            document.getElementById('app').prepend(navContainer);
+            document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
+        }
+        function renderCourseDetail(courseId) {
+            const course = COURSES[courseId];
+            const enrollment = state.enrollments[courseId];
+            document.getElementById('app').insertAdjacentHTML('beforeend', CourseDetailPage(course, enrollment));
+            document.querySelectorAll('.video-item').forEach(item => item.addEventListener('click', () => {
+                const videoId = item.dataset.videoId;
+                document.getElementById('video-player-container').innerHTML = `<iframe class="w-full h-full rounded-lg" src="https://www.youtube.com/embed/${videoId}?autoplay=1" allow="autoplay" allowfullscreen></iframe>`;
+            }));
+            document.getElementById('admin-enroll-btn')?.addEventListener('click', e => handleAdminEnroll(e.target.dataset.courseId));
+        }
+
+        function togglePasswordVisibility(inputId, iconContainerId) {
+            const passwordInput = document.getElementById(inputId);
+            const iconContainer = document.getElementById(iconContainerId);
+            if (!passwordInput || !iconContainer) return;
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                iconContainer.innerHTML = `<i data-feather="eye-off" class="h-5 w-5 text-gray-400"></i>`;
+            } else {
+                passwordInput.type = "password";
+                iconContainer.innerHTML = `<i data-feather="eye" class="h-5 w-5 text-gray-400"></i>`;
+            }
+            feather.replace();
+        }
+
+        function attachLoginHandlers() {
+            document.getElementById('login-form')?.addEventListener('submit', handleLogin);
+            document.getElementById('forgot-password-link')?.addEventListener('click', handlePasswordReset);
+            document.getElementById('toggle-login-password')?.addEventListener('click', () => togglePasswordVisibility('login-password', 'toggle-login-password'));
+        }
+        function attachSignupHandlers() {
+            document.getElementById('signup-form')?.addEventListener('submit', handleSignup);
+            document.getElementById('toggle-signup-password')?.addEventListener('click', () => togglePasswordVisibility('signup-password', 'toggle-signup-password'));
+        }
+        function attachPaymentHandlers(courseId) {
+            document.getElementById('payment-form')?.addEventListener('submit', (e) => handlePaymentSubmit(e, courseId));
+        }
+        function attachAdminHandlers() {
+            document.getElementById('payment-settings-form')?.addEventListener('submit', handleSavePaymentSettings);
+            document.querySelectorAll('.approve-btn').forEach(btn => btn.addEventListener('click', e => {
+                const { paymentId, userId, courseId } = e.target.dataset;
+                handleApprovePayment(paymentId, userId, courseId);
+                e.target.textContent = 'Approved';
+                e.target.disabled = true;
+                 e.target.classList.remove('bg-green-600', 'hover:bg-green-700');
+                e.target.classList.add('bg-gray-500', 'cursor-not-allowed');
+            }));
+        }
+
+        async function onAuthChange(user) {
+            try {
+                if (user) {
+                    const userDocSnap = await getDoc(doc(db, "users", user.uid));
+                    if (!userDocSnap.exists()) throw new Error("User profile not found in database.");
+                    
+                    state.currentUser = user;
+                    state.userData = userDocSnap.data();
+
+                    const enrollmentsQuery = query(collection(db, 'enrollments'), where("userId", "==", user.uid));
+                    const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+                    state.enrollments = {};
+                    enrollmentsSnapshot.forEach(doc => { state.enrollments[doc.data().courseId] = { id: doc.id, ...doc.data() }; });
+
+                    if (state.userData.role === 'admin') {
+                        const settingsDoc = await getDoc(doc(db, "settings", "payment"));
+                        if (settingsDoc.exists()) state.admin.paymentSettings = settingsDoc.data();
+
+                        const paymentsQuery = query(collection(db, 'payments'), where("status", "==", "pending"));
+                        const paymentsSnapshot = await getDocs(paymentsQuery);
+                        const paymentPromises = paymentsSnapshot.docs.map(async docSnapshot => {
+                            const data = docSnapshot.data();
+                            if (!data.userId) return null;
+                            const userSnap = await getDoc(doc(db, 'users', data.userId));
+                            return { ...data, id: docSnapshot.id, userEmail: userSnap.exists() ? userSnap.data().email : 'Unknown' };
+                        });
+                        state.admin.payments = (await Promise.all(paymentPromises)).filter(Boolean);
+                    }
+                } else {
+                    state.currentUser = null; state.userData = null; state.enrollments = {};
+                }
+            } catch (error) {
+                console.error("Critical error during auth state change:", error.message);
+                state.currentUser = null; state.userData = null; state.enrollments = {};
+                if (auth.currentUser) await signOut(auth).catch(e => console.error("Forced sign out failed", e));
+            } finally {
+                state.isAuthReady = true;
+                const redirectPath = sessionStorage.getItem('postLoginRedirect');
+
+                if (redirectPath && state.currentUser) {
+                    sessionStorage.removeItem('postLoginRedirect');
+                    navigate(redirectPath);
+                } else {
+                    const currentPath = window.location.hash.slice(1) || '/';
+                    if (state.currentUser && (currentPath === 'login' || currentPath === 'signup')) {
+                        navigate('/');
+                    } else {
+                        router();
+                    }
+                }
+            }
+        }
+        
+        async function handleLogin(e) {
+            e.preventDefault();
+            const form = e.target;
+            const button = form.querySelector('button[type="submit"]');
+            const buttonText = button.querySelector('.btn-text');
+            const errorEl = document.getElementById('login-error');
+            errorEl.textContent = '';
+            button.disabled = true;
+            buttonText.textContent = 'Logging in...';
+            button.classList.add('btn-loading');
+            
+            try {
+                await signInWithEmailAndPassword(auth, form.elements['login-email'].value, form.elements['login-password'].value);
+            } catch (error) {
+                errorEl.textContent = "Invalid email or password.";
+                buttonText.textContent = 'Login';
+                button.disabled = false;
+                button.classList.remove('btn-loading');
+            }
+        }
+        async function handleSignup(e) {
+            e.preventDefault();
+            const form = e.target;
+            const button = form.querySelector('button[type="submit"]');
+            const buttonText = button.querySelector('.btn-text');
+            const errorEl = document.getElementById('signup-error');
+            errorEl.textContent = '';
+            button.disabled = true;
+            buttonText.textContent = 'Creating Account...';
+            button.classList.add('btn-loading');
+
+            const name = form.elements['signup-name'].value;
+            const email = form.elements['signup-email'].value;
+            const password = form.elements['signup-password'].value;
+            
+            try {
+                const cred = await createUserWithEmailAndPassword(auth, email, password);
+                await setDoc(doc(db, "users", cred.user.uid), { name, email, role: 'student', createdAt: serverTimestamp() });
+            } catch (error) {
+                errorEl.textContent = error.message;
+                buttonText.textContent = 'Sign Up';
+                button.disabled = false;
+                button.classList.remove('btn-loading');
+            }
+        }
+        async function handleLogout() {
+            try {
+                await signOut(auth);
+                navigate('/login');
+            } catch (error) {
+                console.error("Logout failed:", error);
+            }
+        }
+        async function handlePasswordReset(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const messageEl = document.getElementById('login-message');
+            const errorEl = document.getElementById('login-error');
+            messageEl.textContent = '';
+            errorEl.textContent = '';
+
+            if (!email) {
+                errorEl.textContent = "Please enter your email to reset password.";
+                return;
+            }
+            try {
+                await sendPasswordResetEmail(auth, email);
+                messageEl.textContent = "Password reset email sent! Check your inbox.";
+            }
+            catch(error) {
+                errorEl.textContent = "Could not send reset email. " + error.message;
+            }
+        }
+        async function handlePaymentSubmit(e, courseId) {
+            e.preventDefault();
+            const form = e.target;
+            const transactionId = form.elements.transactionId.value;
+            const messageEl = document.getElementById('payment-message');
+            
+            if (!state.currentUser) {
+                sessionStorage.setItem('postLoginRedirect', window.location.hash);
+                if (transactionId) {
+                    sessionStorage.setItem('pendingTransactionId', transactionId);
+                }
+                messageEl.innerHTML = `Please <a href="#/login" class="font-bold underline text-indigo-300 hover:text-indigo-200">log in or sign up</a> to submit your payment details.`;
+                messageEl.className = "text-amber-400 text-center mt-4";
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "payments"), { userId: state.currentUser.uid, courseId, transactionId, status: 'pending', submittedAt: serverTimestamp() });
+                messageEl.textContent = "Submission successful!";
+                messageEl.className = "text-green-400 text-center mt-4";
+                form.reset();
+            } catch (error) { messageEl.textContent = "Error submitting."; messageEl.className = "text-red-400 text-center mt-4"; }
+        }
+        async function handleApprovePayment(paymentId, userId, courseId) {
+            const course = COURSES[courseId];
+            if (!course) return;
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + course.validityDays);
+            try {
+                await addDoc(collection(db, 'enrollments'), { userId, courseId, purchaseDate: new Date(), expiryDate, status: 'active' });
+                await updateDoc(doc(db, 'payments', paymentId), { status: 'approved' });
+                // Refresh admin state to remove the approved payment from the list
+                state.admin.payments = state.admin.payments.filter(p => p.id !== paymentId);
+                router(); // Re-render the view
+            } catch (error) { console.error("Error approving payment:", error); }
+        }
+        async function handleAdminEnroll(courseId) {
+            const course = COURSES[courseId];
+            if (!course || state.userData?.role !== 'admin') return;
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + course.validityDays);
+            try {
+                await addDoc(collection(db, 'enrollments'), { userId: state.currentUser.uid, courseId, purchaseDate: new Date(), expiryDate, status: 'active-admin' });
+                await onAuthChange(state.currentUser); // Refresh state
+            } catch (error) { console.error("Error with admin enroll:", error); }
+        }
+        async function handleSavePaymentSettings(e) {
+            e.preventDefault();
+            const messageEl = document.getElementById('settings-message');
+            messageEl.textContent = 'Saving...';
+            const paymentLink = e.target.elements['payment-link'].value;
+            try {
+                await setDoc(doc(db, "settings", "payment"), { paymentLink });
+                messageEl.textContent = 'Link saved!';
+                 messageEl.className = "text-green-400 text-sm mt-2 inline-block ml-4";
+            } catch (error) { 
+                messageEl.textContent = 'Error saving.'; 
+                messageEl.className = "text-red-400 text-sm mt-2 inline-block ml-4";
+            }
+        }
+        function getDaysLeft(expiryTimestamp) {
+            if (!expiryTimestamp || typeof expiryTimestamp.toDate !== 'function') return 0;
+            const expiryDate = expiryTimestamp.toDate();
+            const days = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+            return Math.max(0, days);
+        }
+
+        window.addEventListener('hashchange', router);
+        onAuthStateChanged(auth, onAuthChange);
+    </script>
+</body>
+</html>
 
