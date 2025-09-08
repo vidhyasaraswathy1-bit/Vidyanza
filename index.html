@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kerala State Syllabus - Learn Smarter</title>
+    <title>Vidyānza - Kerala State Syllabus</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Sanskrit:ital@0;1&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0a092d; background-image: radial-gradient(circle at 25% 15%, rgba(67, 56, 202, 0.4) 0%, rgba(67, 56, 202, 0) 50%), radial-gradient(circle at 75% 85%, rgba(219, 39, 119, 0.3) 0%, rgba(219, 39, 119, 0) 50%); }
@@ -16,6 +17,7 @@
         .btn-premium:hover { background-image: linear-gradient(to right, #c026d3, #4f46e5); }
         .gradient-text { background-image: linear-gradient(to right, #818cf8, #f472b6); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .btn-loading { cursor: not-allowed; opacity: 0.7; }
+        .sanskrit-font { font-family: 'Tiro Devanagari Sanskrit', serif; }
     </style>
 </head>
 <body class="text-gray-200 antialiased">
@@ -131,7 +133,7 @@
             return `
                 <nav class="bg-gray-900/30 backdrop-blur-lg sticky top-0 z-50 border-b border-white/10">
                     <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-                        <a href="#/" class="text-2xl font-bold gradient-text">EduKerala</a>
+                        <a href="#/" class="text-3xl font-bold gradient-text sanskrit-font">Vidyānza</a>
                         <div class="hidden md:flex items-center space-x-8">
                             <a href="#/" class="hover:text-pink-400 transition">Home</a>
                             <a href="#/courses" class="hover:text-pink-400 transition">Courses</a>
@@ -152,7 +154,7 @@
         const Footer = () => `
             <footer class="bg-gray-900/50 border-t border-white/10 mt-auto">
                 <div class="container mx-auto px-6 py-8 text-center text-gray-400">
-                    <p>&copy; ${new Date().getFullYear()} EduKerala. All Rights Reserved.</p>
+                    <p>&copy; ${new Date().getFullYear()} Vidyānza. All Rights Reserved.</p>
                     <div class="mt-4 space-x-6">
                         <a href="#/terms" class="hover:text-pink-400 transition">Terms & Conditions</a>
                     </div>
@@ -178,17 +180,17 @@
                 <div class="space-y-6 text-gray-300 glass-card p-8">
                     <p><strong>Last Updated:</strong> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                     <h3 class="text-2xl font-semibold text-pink-400 pt-4">1. Introduction</h3>
-                    <p>Welcome to EduKerala. By accessing our website and using our services, you agree to be bound by these Terms and Conditions. Please read them carefully.</p>
+                    <p>Welcome to Vidyānza. By accessing our website and using our services, you agree to be bound by these Terms and Conditions. Please read them carefully.</p>
                     <h3 class="text-2xl font-semibold text-pink-400 pt-4">2. Course Enrollment and Access</h3>
                     <p>Upon successful payment and verification by our admin team, you will be granted access to the purchased course for the duration specified (typically 365 days). Access is non-transferable and is intended for a single user only.</p>
                     <h3 class="text-2xl font-semibold text-pink-400 pt-4">3. Payment and Refunds</h3>
                     <p class="font-bold text-red-400">All payments made for courses are final and non-refundable. Once a purchase is completed and access is granted, no refunds will be issued under any circumstances. Please ensure you have reviewed the course details before making a payment.</p>
                     <h3 class="text-2xl font-semibold text-pink-400 pt-4">4. Intellectual Property</h3>
-                    <p>All course content, including videos, notes, and materials, are the intellectual property of EduKerala. You may not reproduce, distribute, or share this content without our explicit written permission.</p>
+                    <p>All course content, including videos, notes, and materials, are the intellectual property of Vidyānza. You may not reproduce, distribute, or share this content without our explicit written permission.</p>
                     <h3 class="text-2xl font-semibold text-pink-400 pt-4">5. User Conduct</h3>
                     <p>You agree not to use the service for any unlawful purpose. Sharing your account credentials with others is strictly prohibited and may result in the termination of your access without a refund.</p>
                      <h3 class="text-2xl font-semibold text-pink-400 pt-4">6. Limitation of Liability</h3>
-                    <p>EduKerala is not liable for any indirect, incidental, or consequential damages arising out of your use of our services.</p>
+                    <p>Vidyānza is not liable for any indirect, incidental, or consequential damages arising out of your use of our services.</p>
                 </div>
             </div>`;
 
@@ -297,7 +299,7 @@
             } else if (upiId === 'Not Set by Admin') {
                 // If admin hasn't set a link, use the hardcoded one for QR
                 upiId = 'asreenandan32@oksbi';
-                const hardcodedLink = `upi://pay?pa=${upiId}&pn=EduKerala&am=${course.price}&cu=INR`;
+                const hardcodedLink = `upi://pay?pa=${upiId}&pn=Vidyānza&am=${course.price}&cu=INR`;
                  qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(hardcodedLink)}`;
             }
 
