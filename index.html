@@ -19,7 +19,13 @@
     </style>
 </head>
 <body class="text-gray-200 antialiased">
-    <div id="app"><div class="flex items-center justify-center min-h-screen"><div class="ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32 animate-spin"></div></div></div>
+    <div id="app" class="flex flex-col min-h-screen">
+        <div class="flex-grow">
+            <div class="flex items-center justify-center min-h-screen">
+                <div class="ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32 animate-spin"></div>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -47,21 +53,21 @@
 
         const COURSES = {
             'class-8': { 
-                id: 'class-8', name: 'Class 8', price: 1999, validityDays: 365, 
+                id: 'class-8', name: 'Class 8', price: 1999, markedPrice: 3000, validityDays: 365, 
                 subjects: { 
                     'physics': { name: 'Physics', videos: [ {title: 'Force and Pressure', id: 'ky95S-eRwa4'}, {title: 'Friction', id: 'eM7z_43Hn0M'} ] },
                     'chemistry': { name: 'Chemistry', videos: [ {title: 'Synthetic Fibres and Plastics', id: 'j-p2pT6xHYc'}, {title: 'Materials: Metals and Non-Metals', id: 'v6UP62_G3pA'} ] }
                 }
             },
             'class-9': { 
-                id: 'class-9', name: 'Class 9', price: 1999, validityDays: 365, 
+                id: 'class-9', name: 'Class 9', price: 1999, markedPrice: 3000, validityDays: 365, 
                 subjects: {
                     'physics': { name: 'Physics', videos: [ {title: 'Motion', id: '4xIHgj2x6v4'}, {title: 'Force and Laws of Motion', id: 'Q3_sMTE33jY'} ] },
                     'biology': { name: 'Biology', videos: [ {title: 'The Fundamental Unit of Life', id: 'z-zB-aVq1gU'}, {title: 'Tissues', id: 'cRIWfLpM8aU'} ] }
                 } 
             },
             'class-10': { 
-                id: 'class-10', name: 'Class 10', price: 1999, validityDays: 365, 
+                id: 'class-10', name: 'Class 10', price: 1999, markedPrice: 3000, validityDays: 365, 
                 subjects: { 
                     'physics': { name: 'Physics', videos: [ {title: 'Light - Reflection and Refraction', id: '1h-24Qy0I7I'}, {title: 'Human Eye and Colourful World', id: '1y0-Z2o0L3k'} ] },
                     'maths': { name: 'Maths', videos: [ {title: 'Arithmetic Progressions', id: 'tP-HWOEa7nU'}, {title: 'Circles', id: 'fBQDjAhXhtY'}, {title: 'Triangles', id: 'HqN6_2-A_4k'} ] },
@@ -69,7 +75,7 @@
                 } 
             },
             'class-11': { 
-                id: 'class-11', name: 'Class 11', price: 1999, validityDays: 365, 
+                id: 'class-11', name: 'Class 11', price: 1999, markedPrice: 3000, validityDays: 365, 
                 subjects: { 
                     'physics': { name: 'Physics', videos: [ {title: 'Units and Measurements', id: '2124I01a5jU'} ] },
                     'chemistry': { name: 'Chemistry', videos: [ {title: 'Some Basic Concepts of Chemistry', id: 'FSyC_MddM6g'} ] }
@@ -91,24 +97,32 @@
             const [mainPath, subPath] = path.split('/').filter(p => p);
             const appContainer = document.getElementById('app');
             appContainer.innerHTML = ''; 
-            renderNavbar();
+            const mainContent = document.createElement('div');
+            mainContent.className = 'flex-grow';
+            
+            renderNavbar(appContainer);
+            appContainer.appendChild(mainContent); // Append main container BEFORE populating it
+
             switch (mainPath) {
-                case 'login': appContainer.insertAdjacentHTML('beforeend', LoginPage()); attachLoginHandlers(); break;
-                case 'signup': appContainer.insertAdjacentHTML('beforeend', SignupPage()); attachSignupHandlers(); break;
+                case 'login': mainContent.innerHTML = LoginPage(); attachLoginHandlers(); break;
+                case 'signup': mainContent.innerHTML = SignupPage(); attachSignupHandlers(); break;
                 case 'courses':
-                    if (subPath && COURSES[subPath]) renderCourseDetail(subPath);
-                    else appContainer.insertAdjacentHTML('beforeend', CoursesPage());
+                    if (subPath && COURSES[subPath]) renderCourseDetail(mainContent, subPath);
+                    else mainContent.innerHTML = CoursesPage();
                     break;
                 case 'payment':
-                    if (subPath && COURSES[subPath]) await renderPaymentPage(subPath);
+                    if (subPath && COURSES[subPath]) await renderPaymentPage(mainContent, subPath);
                     else navigate('/courses');
                     break;
                 case 'admin':
-                    if (state.userData?.role === 'admin') await renderAdminDashboard();
-                    else appContainer.insertAdjacentHTML('beforeend', HomePage());
+                    if (state.userData?.role === 'admin') await renderAdminDashboard(mainContent);
+                    else mainContent.innerHTML = HomePage();
                     break;
-                default: appContainer.insertAdjacentHTML('beforeend', HomePage());
+                case 'terms': mainContent.innerHTML = TermsPage(); break;
+                default: mainContent.innerHTML = HomePage();
             }
+            
+            renderFooter(appContainer);
             feather.replace();
         }
         
@@ -121,7 +135,7 @@
                         <div class="hidden md:flex items-center space-x-8">
                             <a href="#/" class="hover:text-pink-400 transition">Home</a>
                             <a href="#/courses" class="hover:text-pink-400 transition">Courses</a>
-                             ${userData?.role === 'admin' ? `<a href="#/admin" class="hover:text-pink-400 transition">Admin</a>` : ''}
+                            ${userData?.role === 'admin' ? `<a href="#/admin" class="hover:text-pink-400 transition">Admin</a>` : ''}
                         </div>
                         <div class="flex items-center space-x-4">
                             ${currentUser ? `
@@ -135,17 +149,56 @@
                     </div>
                 </nav>`;
         };
-        const HomePage = () => `<div class="container mx-auto px-6 py-24 text-center"><h1 class="text-4xl md:text-6xl font-extrabold mb-4"><span class="gradient-text">Kerala State Classes 8, 9, 10 & 11</span></h1><p class="text-xl text-gray-400 mb-8 max-w-3xl mx-auto">Learn Smarter, Anytime.</p><div class="flex justify-center"><a href="#/courses" class="btn-premium text-white font-bold py-3 px-8 rounded-lg">Explore Courses</a></div></div><div class="container mx-auto px-6 py-16">${CoursesPage()}</div>`;
+        const Footer = () => `
+            <footer class="bg-gray-900/50 border-t border-white/10 mt-auto">
+                <div class="container mx-auto px-6 py-8 text-center text-gray-400">
+                    <p>&copy; ${new Date().getFullYear()} EduKerala. All Rights Reserved.</p>
+                    <div class="mt-4 space-x-6">
+                        <a href="#/terms" class="hover:text-pink-400 transition">Terms & Conditions</a>
+                    </div>
+                </div>
+            </footer>`;
+
+        const HomePage = () => `<div class="container mx-auto px-6 py-24 text-center"><h1 class="text-4xl md:text-6xl font-extrabold mb-4"><span class="gradient-text">Kerala State Classes 8, 9, 10 & 11</span></h1><p class="text-xl text-gray-400 mb-8 max-w-3xl mx-auto">Learn Smarter, Anytime.</p><div class="flex justify-center"><a href="#/courses" class="btn-premium text-white font-bold py-3 px-8 rounded-lg">Explore Courses</a></div></div><div class="container mx-auto px-6 py-16">${CoursesPage()}</div><div class="container mx-auto px-6">${FAQSection()}</div>`;
+        
+        const FAQSection = () => `
+            <div class="py-16">
+                <h2 class="text-4xl font-bold text-center mb-12 gradient-text">Frequently Asked Questions</h2>
+                <div class="max-w-4xl mx-auto space-y-4">
+                    <div class="glass-card"><details class="p-6 group"><summary class="flex items-center justify-between cursor-pointer font-semibold text-white text-lg">How long do I have access to the course?<i data-feather="chevron-down" class="w-5 h-5 transition-transform duration-300 group-open:rotate-180"></i></summary><p class="text-gray-400 mt-4">You will have access to the course for 365 days from the date of purchase approval.</p></details></div>
+                    <div class="glass-card"><details class="p-6 group"><summary class="flex items-center justify-between cursor-pointer font-semibold text-white text-lg">Is this based on the Kerala State Syllabus?<i data-feather="chevron-down" class="w-5 h-5 transition-transform duration-300 group-open:rotate-180"></i></summary><p class="text-gray-400 mt-4">Yes, all our courses are designed specifically for the Kerala State Board syllabus for the respective classes.</p></details></div>
+                    <div class="glass-card"><details class="p-6 group"><summary class="flex items-center justify-between cursor-pointer font-semibold text-white text-lg">What happens after I make the payment?<i data-feather="chevron-down" class="w-5 h-5 transition-transform duration-300 group-open:rotate-180"></i></summary><p class="text-gray-400 mt-4">After you make the payment via UPI, you must submit the Transaction ID on our payment page. Our admin team will verify the payment and approve your access, typically within 24 hours.</p></details></div>
+                    <div class="glass-card"><details class="p-6 group"><summary class="flex items-center justify-between cursor-pointer font-semibold text-white text-lg">Can I get a refund if I don't like the course?<i data-feather="chevron-down" class="w-5 h-5 transition-transform duration-300 group-open:rotate-180"></i></summary><p class="text-gray-400 mt-4">We have a strict no-refund policy. All sales are final. We encourage you to review all available information and our Terms & Conditions before making a purchase.</p></details></div>
+                </div>
+            </div>`;
+
+        const TermsPage = () => `
+            <div class="container mx-auto px-4 py-12 max-w-4xl">
+                <h2 class="text-4xl font-bold gradient-text mb-8">Terms & Conditions</h2>
+                <div class="space-y-6 text-gray-300 glass-card p-8">
+                    <p><strong>Last Updated:</strong> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    <h3 class="text-2xl font-semibold text-pink-400 pt-4">1. Introduction</h3>
+                    <p>Welcome to EduKerala. By accessing our website and using our services, you agree to be bound by these Terms and Conditions. Please read them carefully.</p>
+                    <h3 class="text-2xl font-semibold text-pink-400 pt-4">2. Course Enrollment and Access</h3>
+                    <p>Upon successful payment and verification by our admin team, you will be granted access to the purchased course for the duration specified (typically 365 days). Access is non-transferable and is intended for a single user only.</p>
+                    <h3 class="text-2xl font-semibold text-pink-400 pt-4">3. Payment and Refunds</h3>
+                    <p class="font-bold text-red-400">All payments made for courses are final and non-refundable. Once a purchase is completed and access is granted, no refunds will be issued under any circumstances. Please ensure you have reviewed the course details before making a payment.</p>
+                    <h3 class="text-2xl font-semibold text-pink-400 pt-4">4. Intellectual Property</h3>
+                    <p>All course content, including videos, notes, and materials, are the intellectual property of EduKerala. You may not reproduce, distribute, or share this content without our explicit written permission.</p>
+                    <h3 class="text-2xl font-semibold text-pink-400 pt-4">5. User Conduct</h3>
+                    <p>You agree not to use the service for any unlawful purpose. Sharing your account credentials with others is strictly prohibited and may result in the termination of your access without a refund.</p>
+                     <h3 class="text-2xl font-semibold text-pink-400 pt-4">6. Limitation of Liability</h3>
+                    <p>EduKerala is not liable for any indirect, incidental, or consequential damages arising out of your use of our services.</p>
+                </div>
+            </div>`;
+
         const LoginPage = () => `
             <div class="flex items-center justify-center py-12 px-4">
                 <div class="w-full max-w-md space-y-8 glass-card p-8">
                     <h2 class="mt-6 text-center text-3xl font-extrabold gradient-text">Log in</h2>
                     <form id="login-form" class="mt-8 space-y-6">
                         <input id="login-email" type="email" autocomplete="email" required class="w-full px-3 py-3 border border-gray-700 bg-gray-800 rounded-md" placeholder="Email address">
-                        <div class="relative">
-                            <input id="login-password" type="password" autocomplete="current-password" required class="w-full px-3 py-3 border border-gray-700 bg-gray-800 rounded-md" placeholder="Password">
-                            <span class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" id="toggle-login-password"><i data-feather="eye" class="h-5 w-5 text-gray-400"></i></span>
-                        </div>
+                        <div class="relative"><input id="login-password" type="password" autocomplete="current-password" required class="w-full px-3 py-3 border border-gray-700 bg-gray-800 rounded-md" placeholder="Password"><span class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" id="toggle-login-password"><i data-feather="eye" class="h-5 w-5 text-gray-400"></i></span></div>
                         <a href="#" id="forgot-password-link" class="text-sm text-indigo-400 hover:text-indigo-300 block text-right">Forgot password?</a>
                         <button type="submit" class="w-full flex justify-center py-3 px-4 rounded-md text-white btn-premium"><span class="btn-text">Login</span></button>
                         <p id="login-message" class="text-green-400 text-sm mt-2 text-center"></p>
@@ -161,10 +214,7 @@
                     <form id="signup-form" class="mt-8 space-y-6">
                         <input id="signup-name" type="text" autocomplete="name" required class="w-full px-3 py-3 border border-gray-700 bg-gray-800 rounded-md" placeholder="Full Name">
                         <input id="signup-email" type="email" autocomplete="email" required class="w-full px-3 py-3 border border-gray-700 bg-gray-800 rounded-md" placeholder="Email address">
-                        <div class="relative">
-                             <input id="signup-password" type="password" autocomplete="new-password" required class="w-full px-3 py-3 border border-gray-700 bg-gray-800 rounded-md" placeholder="Password">
-                            <span class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" id="toggle-signup-password"><i data-feather="eye" class="h-5 w-5 text-gray-400"></i></span>
-                        </div>
+                        <div class="relative"><input id="signup-password" type="password" autocomplete="new-password" required class="w-full px-3 py-3 border border-gray-700 bg-gray-800 rounded-md" placeholder="Password"><span class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" id="toggle-signup-password"><i data-feather="eye" class="h-5 w-5 text-gray-400"></i></span></div>
                         <button type="submit" class="w-full flex justify-center py-3 px-4 rounded-md text-white btn-premium"><span class="btn-text">Sign Up</span></button>
                         <p id="signup-error" class="text-red-500 text-sm mt-2 text-center"></p>
                         <p class="text-center text-sm">Have an account? <a href="#/login" class="font-medium text-indigo-400">Log in</a></p>
@@ -173,43 +223,61 @@
             </div>`;
         const CoursesPage = () => {
              const courseCards = Object.values(COURSES).map(course => {
-                 const enrollment = state.enrollments[course.id];
-                 const isEnrolled = enrollment && enrollment.expiryDate && new Date(enrollment.expiryDate.toDate()) > new Date();
-                 return `
-                     <a href="#/courses/${course.id}" class="block glass-card p-6 transform hover:scale-105 transition">
-                         <div class="flex justify-between items-start">
-                             <h3 class="text-2xl font-bold text-white mb-2">${course.name}</h3>
-                             ${isEnrolled ? `<div class="flex items-center text-green-400 bg-green-500/10 px-3 py-1 rounded-full text-sm"><i data-feather="unlock" class="w-4 h-4 mr-2"></i>Unlocked</div>`
-                                          : `<div class="flex items-center text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full text-sm"><i data-feather="lock" class="w-4 h-4 mr-2"></i>Locked</div>`}
-                         </div>
-                         <p class="text-gray-400 mb-4">Comprehensive video lessons for all subjects.</p>
-                         ${isEnrolled ? `<div class="text-sm">Expires in: ${getDaysLeft(enrollment.expiryDate)} days</div>` : `<div class="text-sm text-indigo-400">Click to enroll</div>`}
-                     </a>`;
+                  const enrollment = state.enrollments[course.id];
+                  const isEnrolled = enrollment && enrollment.expiryDate && new Date(enrollment.expiryDate.toDate()) > new Date();
+                  const discount = Math.round(((course.markedPrice - course.price) / course.markedPrice) * 100);
+                  return `
+                       <a href="#/courses/${course.id}" class="block glass-card p-6 transform hover:scale-105 transition flex flex-col justify-between">
+                            <div>
+                                <div class="flex justify-between items-start">
+                                    <h3 class="text-2xl font-bold text-white mb-2">${course.name}</h3>
+                                    ${isEnrolled ? `<div class="flex items-center text-green-400 bg-green-500/10 px-3 py-1 rounded-full text-sm font-semibold"><i data-feather="unlock" class="w-4 h-4 mr-2"></i>Unlocked</div>`
+                                                 : `<div class="flex items-center text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full text-sm font-semibold"><i data-feather="lock" class="w-4 h-4 mr-2"></i>Locked</div>`}
+                                </div>
+                                <p class="text-gray-400 mb-4">Comprehensive video lessons for all subjects.</p>
+                            </div>
+                            <div>
+                                <div class="flex items-baseline space-x-2 mb-4">
+                                    <span class="text-3xl font-bold text-white">₹${course.price}</span>
+                                    <span class="text-xl text-gray-500 line-through">₹${course.markedPrice}</span>
+                                    <span class="text-green-400 bg-green-500/10 px-2 py-1 rounded-md text-sm font-semibold">${discount}% OFF</span>
+                                </div>
+                                ${isEnrolled ? `<div class="text-sm text-gray-300">Expires in: ${getDaysLeft(enrollment.expiryDate)} days</div>` : `<div class="text-sm text-indigo-400 font-semibold">Click to enroll</div>`}
+                            </div>
+                       </a>`;
              }).join('');
              return `<div class="container mx-auto"><h2 class="text-4xl font-bold text-center mb-12 gradient-text">Our Courses</h2><div class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">${courseCards}</div></div>`;
         };
         const CourseDetailPage = (course, enrollment) => {
-             const isEnrolled = enrollment && enrollment.expiryDate && new Date(enrollment.expiryDate.toDate()) > new Date();
-             const isAdminNotEnrolled = state.userData?.role === 'admin' && !isEnrolled;
-             const subjectHtml = Object.values(course.subjects || {}).map(subject => {
-                 const videoListHtml = (subject.videos || []).map(video => isEnrolled ?
-                     `<div class="flex items-center space-x-4 p-4 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition cursor-pointer video-item" data-video-id="${video.id}"><i data-feather="play-circle" class="w-8 h-8 text-indigo-400"></i><span>${video.title}</span></div>` :
-                     `<div class="flex items-center space-x-4 p-4 bg-gray-800/50 rounded-lg opacity-50"><i data-feather="lock" class="w-8 h-8 text-gray-500"></i><span>${video.title}</span></div>`
-                 ).join('');
-                 return `<div class="glass-card p-6"><h4 class="text-2xl font-semibold mb-4 text-pink-400">${subject.name}</h4><div class="space-y-3">${videoListHtml}</div></div>`;
-             }).join('');
+              const isEnrolled = enrollment && enrollment.expiryDate && new Date(enrollment.expiryDate.toDate()) > new Date();
+              const isAdminNotEnrolled = state.userData?.role === 'admin' && !isEnrolled;
+              const subjectHtml = Object.values(course.subjects || {}).map(subject => {
+                  const videoListHtml = (subject.videos || []).map(video => isEnrolled ?
+                      `<div class="flex items-center space-x-4 p-4 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition cursor-pointer video-item" data-video-id="${video.id}"><i data-feather="play-circle" class="w-8 h-8 text-indigo-400"></i><span>${video.title}</span></div>` :
+                      `<div class="flex items-center space-x-4 p-4 bg-gray-800/50 rounded-lg opacity-50"><i data-feather="lock" class="w-8 h-8 text-gray-500"></i><span>${video.title}</span></div>`
+                  ).join('');
+                  return `<div class="glass-card p-6"><h4 class="text-2xl font-semibold mb-4 text-pink-400">${subject.name}</h4><div class="space-y-3">${videoListHtml}</div></div>`;
+              }).join('');
 
-             return `
-                 <div class="container mx-auto px-4 py-12">
-                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-                         <div><h2 class="text-4xl font-bold gradient-text">${course.name}</h2><p class="text-gray-400">Select a lesson to begin.</p></div>
-                         ${isEnrolled ? `<div class="glass-card p-4 mt-4 md:mt-0 text-center"><div class="text-3xl font-bold text-green-400">${getDaysLeft(enrollment.expiryDate)}</div><div class="text-sm">Days Left</div></div>`
-                         : isAdminNotEnrolled ? `<button id="admin-enroll-btn" data-course-id="${course.id}" class="mt-4 md:mt-0 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-6 rounded-lg">Admin Enroll</button>`
-                         : `<a href="#/payment/${course.id}" class="mt-4 md:mt-0 btn-premium text-white font-bold py-3 px-6 rounded-lg">Buy Course (₹${course.price})</a>`}
-                     </div>
-                     <div id="video-player-container" class="glass-card p-4 aspect-video mb-8 ${isEnrolled ? '' : 'hidden'}"><p class="flex items-center justify-center h-full text-gray-400"><i data-feather="film" class="w-10 h-10 mr-4"></i>Select a video to start</p></div>
-                     <div class="grid lg:grid-cols-2 gap-8">${subjectHtml}</div>
-                 </div>`;
+              const discount = Math.round(((course.markedPrice - course.price) / course.markedPrice) * 100);
+
+              return `
+                  <div class="container mx-auto px-4 py-12">
+                      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+                          <div><h2 class="text-4xl font-bold gradient-text">${course.name}</h2><p class="text-gray-400">Select a lesson to begin.</p></div>
+                          ${isEnrolled ? `<div class="glass-card p-4 mt-4 md:mt-0 text-center"><div class="text-3xl font-bold text-green-400">${getDaysLeft(enrollment.expiryDate)}</div><div class="text-sm">Days Left</div></div>`
+                          : isAdminNotEnrolled ? `<button id="admin-enroll-btn" data-course-id="${course.id}" class="mt-4 md:mt-0 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-6 rounded-lg">Admin Enroll</button>`
+                          : `<div class="flex items-center gap-4 mt-4 md:mt-0">
+                                <div class="text-right">
+                                    <p class="text-xl text-gray-400 line-through">₹${course.markedPrice}</p>
+                                    <p class="text-green-400 font-semibold">${discount}% OFF</p>
+                                </div>
+                                <a href="#/payment/${course.id}" class="btn-premium text-white font-bold py-3 px-6 rounded-lg">Buy Course (₹${course.price})</a>
+                             </div>`}
+                      </div>
+                      <div id="video-player-container" class="glass-card p-4 aspect-video mb-8 ${isEnrolled ? '' : 'hidden'}"><p class="flex items-center justify-center h-full text-gray-400"><i data-feather="film" class="w-10 h-10 mr-4"></i>Select a video to start</p></div>
+                      <div class="grid lg:grid-cols-2 gap-8">${subjectHtml}</div>
+                  </div>`;
         };
         const PaymentPage = (course, settings) => {
             const { paymentLink } = settings;
@@ -220,31 +288,42 @@
                 const match = paymentLink.match(/pa=([^&]+)/);
                 if (match && match[1]) {
                     upiId = match[1];
-                    qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(paymentLink)}`;
+                    // Manually override UPI ID for display as requested
+                    upiId = 'asreenandan32@oksbi';
+                    // Update payment link to reflect the manual override for QR code generation
+                    const newPaymentLink = paymentLink.replace(match[1], upiId);
+                    qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(newPaymentLink)}`;
                 }
+            } else if (upiId === 'Not Set by Admin') {
+                // If admin hasn't set a link, use the hardcoded one for QR
+                upiId = 'asreenandan32@oksbi';
+                const hardcodedLink = `upi://pay?pa=${upiId}&pn=EduKerala&am=${course.price}&cu=INR`;
+                 qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(hardcodedLink)}`;
             }
+
 
             return `
             <div class="container mx-auto px-4 py-16">
-                 <h2 class="text-3xl md:text-4xl font-bold text-center mb-4 gradient-text">Enroll in ${course.name}</h2>
-                 <p class="text-center text-gray-400 max-w-2xl mx-auto mb-12">Pay ₹${course.price} and submit the details below.</p>
-                 <div class="grid md:grid-cols-2 gap-12 items-center">
-                     <div class="glass-card p-8 text-center">
-                         <h3 class="text-2xl font-semibold mb-4">Scan to Pay with UPI</h3>
-                         <img src="${qrCodeUrl}" alt="UPI QR Code" class="mx-auto rounded-lg bg-white p-2">
-                         <p class="mt-4 text-lg font-bold">${upiId}</p>
-                         <div class="mt-6"><a href="${paymentLink || '#'}" class="btn-premium text-white font-semibold py-3 px-8 rounded-lg flex items-center justify-center gap-2 w-full sm:w-auto mx-auto"><i data-feather="smartphone" class="w-5 h-5"></i> Pay Now</a></div>
-                     </div>
-                     <div class="glass-card p-8">
-                         <h3 class="text-2xl font-semibold mb-6">Submit Payment Details</h3>
-                         <form id="payment-form" class="space-y-6">
-                              <input type="text" id="transactionId" required class="w-full px-3 py-3 border border-gray-700 bg-gray-800 rounded-md" placeholder="Transaction ID / UTR">
-                              <p class="text-xs text-gray-500">Access will be approved by an admin within 24 hours.</p>
-                              <button type="submit" class="w-full btn-premium text-white font-bold py-3 px-6 rounded-lg">Submit</button>
-                             <p id="payment-message" class="text-center mt-4"></p>
-                         </form>
-                     </div>
-                 </div>
+                <h2 class="text-3xl md:text-4xl font-bold text-center mb-4 gradient-text">Enroll in ${course.name}</h2>
+                <p class="text-center text-gray-400 max-w-2xl mx-auto mb-12">Pay ₹${course.price} and submit the details below.</p>
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div class="glass-card p-8 text-center">
+                        <h3 class="text-2xl font-semibold mb-4">Scan to Pay with UPI</h3>
+                        <img src="${qrCodeUrl}" alt="UPI QR Code" class="mx-auto rounded-lg bg-white p-2">
+                        <p class="mt-6 text-gray-400">OR pay ₹${course.price} directly to UPI ID:</p>
+                        <p class="mt-2 text-xl font-mono p-2 bg-gray-900 rounded-md inline-block">asreenandan32@oksbi</p>
+                    </div>
+                    <div class="glass-card p-8">
+                        <h3 class="text-2xl font-semibold mb-6">Submit Payment Details</h3>
+                        <form id="payment-form" class="space-y-6">
+                            <input type="text" id="transactionId" required class="w-full px-3 py-3 border border-gray-700 bg-gray-800 rounded-md" placeholder="Transaction ID / UTR">
+                            <p class="text-xs text-gray-500">Access will be approved by an admin within 24 hours.</p>
+                            <p class="text-xs text-red-400 font-semibold">NOTE: Payments are strictly non-refundable. Please review the <a href="#/terms" class="underline">Terms and Conditions</a>.</p>
+                            <button type="submit" class="w-full btn-premium text-white font-bold py-3 px-6 rounded-lg">Submit</button>
+                            <p id="payment-message" class="text-center mt-4"></p>
+                        </form>
+                    </div>
+                </div>
             </div>`;
         };
         const AdminDashboardPage = () => {
@@ -268,7 +347,7 @@
                            <form id="payment-settings-form" class="space-y-4">
                                 <label for="payment-link" class="block text-sm font-medium text-gray-300">Full UPI Payment Link</label>
                                 <input type="text" id="payment-link" value="${paymentSettings.paymentLink}" placeholder="upi://pay?pa=your-id@oksbi..." class="w-full px-3 py-2 border border-gray-700 bg-gray-800 rounded-md">
-                                <p class="text-xs text-gray-400">The QR code is generated automatically from this link.</p>
+                                <p class="text-xs text-gray-400">The QR code and UPI ID shown to users are generated automatically from this link.</p>
                                 <button type="submit" class="btn-premium text-white font-bold py-2 px-6 rounded-lg">Save Link</button>
                                 <p id="settings-message" class="text-sm mt-2 inline-block ml-4"></p>
                            </form>
@@ -281,15 +360,15 @@
                 </div>`;
         };
         
-        async function renderAdminDashboard() {
-            document.getElementById('app').insertAdjacentHTML('beforeend', AdminDashboardPage());
+        async function renderAdminDashboard(container) {
+            container.innerHTML = AdminDashboardPage();
             attachAdminHandlers();
         }
-        async function renderPaymentPage(courseId) {
+        async function renderPaymentPage(container, courseId) {
             const course = COURSES[courseId];
             const settingsDoc = await getDoc(doc(db, "settings", "payment"));
             const settings = settingsDoc.exists() ? settingsDoc.data() : { paymentLink: '' };
-            document.getElementById('app').insertAdjacentHTML('beforeend', PaymentPage(course, settings));
+            container.innerHTML = PaymentPage(course, settings);
             attachPaymentHandlers(courseId);
 
             const pendingTxId = sessionStorage.getItem('pendingTransactionId');
@@ -301,16 +380,21 @@
                 sessionStorage.removeItem('pendingTransactionId');
             }
         }
-        function renderNavbar() {
+        function renderNavbar(container) {
             const navContainer = document.createElement('div');
             navContainer.innerHTML = Navbar();
-            document.getElementById('app').prepend(navContainer);
+            container.prepend(navContainer);
             document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
         }
-        function renderCourseDetail(courseId) {
+        function renderFooter(container) {
+            const footerContainer = document.createElement('div');
+            footerContainer.innerHTML = Footer();
+            container.appendChild(footerContainer);
+        }
+        function renderCourseDetail(container, courseId) {
             const course = COURSES[courseId];
             const enrollment = state.enrollments[courseId];
-            document.getElementById('app').insertAdjacentHTML('beforeend', CourseDetailPage(course, enrollment));
+            container.innerHTML = CourseDetailPage(course, enrollment);
             document.querySelectorAll('.video-item').forEach(item => item.addEventListener('click', () => {
                 const videoId = item.dataset.videoId;
                 document.getElementById('video-player-container').innerHTML = `<iframe class="w-full h-full rounded-lg" src="https://www.youtube.com/embed/${videoId}?autoplay=1" allow="autoplay" allowfullscreen></iframe>`;
@@ -360,16 +444,16 @@
             try {
                 if (user) {
                     const userDocSnap = await getDoc(doc(db, "users", user.uid));
-                    if (!userDocSnap.exists()) {
-                        // This can happen if Firestore doc creation fails after auth creation.
-                        // Forcing a logout is a safe way to handle this inconsistent state.
-                        console.error("User exists in Auth but not in Firestore. Forcing logout.");
-                        await signOut(auth);
-                        return; // Stop further execution
-                    }
                     
+                    // FIX: Don't log out if doc doesn't exist yet. This handles the signup race condition
+                    // where auth state changes before the firestore write from handleSignup is complete.
+                    if (!userDocSnap.exists()) {
+                        console.warn(`User doc for ${user.uid} not found. This is normal during signup process.`);
+                    }
+
                     state.currentUser = user;
-                    state.userData = userDocSnap.data();
+                    // Use existing data, or create a placeholder for new users until their doc is created.
+                    state.userData = userDocSnap.exists() ? userDocSnap.data() : { name: user.email, email: user.email, role: 'student' };
 
                     const enrollmentsQuery = query(collection(db, 'enrollments'), where("userId", "==", user.uid));
                     const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
@@ -399,8 +483,6 @@
                 if (auth.currentUser) await signOut(auth).catch(e => console.error("Forced sign out failed", e));
             } finally {
                 state.isAuthReady = true;
-                // onAuthChange now simply updates state and re-renders the current page.
-                // Navigation is now handled directly by the login/signup/logout functions.
                 router();
             }
         }
@@ -418,7 +500,6 @@
             
             try {
                 await signInWithEmailAndPassword(auth, form.elements['login-email'].value, form.elements['login-password'].value);
-                // Explicitly navigate after successful login.
                 const redirectPath = sessionStorage.getItem('postLoginRedirect');
                 if (redirectPath) {
                     sessionStorage.removeItem('postLoginRedirect');
@@ -451,7 +532,6 @@
             try {
                 const cred = await createUserWithEmailAndPassword(auth, email, password);
                 await setDoc(doc(db, "users", cred.user.uid), { name, email, role: 'student', createdAt: serverTimestamp() });
-                // Explicitly navigate to home page after successful signup.
                 navigate('/');
             } catch (error) {
                 errorEl.textContent = error.message;
@@ -506,7 +586,7 @@
 
             try {
                 await addDoc(collection(db, "payments"), { userId: state.currentUser.uid, courseId, transactionId, status: 'pending', submittedAt: serverTimestamp() });
-                messageEl.textContent = "Submission successful!";
+                messageEl.textContent = "Submission successful! We will verify and grant access soon.";
                 messageEl.className = "text-green-400 text-center mt-4";
                 form.reset();
             } catch (error) { messageEl.textContent = "Error submitting."; messageEl.className = "text-red-400 text-center mt-4"; }
@@ -559,26 +639,25 @@
         onAuthStateChanged(auth, onAuthChange);
     </script>
     <script>
-  // Disable right-click
-  document.addEventListener('contextmenu', event => event.preventDefault());
+    // Disable right-click
+    document.addEventListener('contextmenu', event => event.preventDefault());
 
-  // Disable certain key shortcuts
-  document.addEventListener('keydown', function(event) {
-    // F12
-    if (event.key === "F12") {
-      event.preventDefault();
-    }
-    // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C
-    if (event.ctrlKey && event.shiftKey && ["I", "J", "C"].includes(event.key)) {
-      event.preventDefault();
-    }
-    // Ctrl+U (view source)
-    if (event.ctrlKey && event.key === "u") {
-      event.preventDefault();
-    }
-  });
-</script>
+    // Disable certain key shortcuts
+    document.addEventListener('keydown', function(event) {
+        // F12
+        if (event.key === "F12") {
+            event.preventDefault();
+        }
+        // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C
+        if (event.ctrlKey && event.shiftKey && ["I", "J", "C"].includes(event.key.toUpperCase())) {
+            event.preventDefault();
+        }
+        // Ctrl+U (view source)
+        if (event.ctrlKey && event.key === "u") {
+            event.preventDefault();
+        }
+    });
+    </script>
 
 </body>
 </html>
-
