@@ -311,7 +311,12 @@
                         <h3 class="text-2xl font-semibold mb-4">Scan to Pay with UPI</h3>
                         <img src="${qrCodeUrl}" alt="UPI QR Code" class="mx-auto rounded-lg bg-white p-2">
                         <p class="mt-6 text-gray-400">OR pay ₹${course.price} directly to UPI ID:</p>
-                        <p class="mt-2 text-xl font-mono p-2 bg-gray-900 rounded-md inline-block">asreenandan32@oksbi</p>
+                        <div class="mt-2 inline-flex items-center bg-gray-900 rounded-md">
+                           <span id="upi-id-text" class="text-xl font-mono p-2">asreenandan32@oksbi</span>
+                           <button id="copy-upi-btn" title="Copy UPI ID" class="p-2 text-gray-400 hover:text-white transition-colors duration-200">
+                               <i data-feather="copy" class="w-5 h-5"></i>
+                           </button>
+                        </div>
                     </div>
                     <div class="glass-card p-8">
                         <h3 class="text-2xl font-semibold mb-6">Submit Payment Details</h3>
@@ -416,6 +421,29 @@
             feather.replace();
         }
 
+        function handleCopyUpiId() {
+            const upiIdText = document.getElementById('upi-id-text')?.innerText;
+            const copyBtn = document.getElementById('copy-upi-btn');
+            if (!upiIdText || !copyBtn) return;
+
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = upiIdText;
+            tempTextArea.style.position = 'absolute';
+            tempTextArea.style.left = '-9999px';
+            
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+            
+            copyBtn.innerHTML = `<i data-feather="check" class="w-5 h-5 text-green-400"></i>`;
+            feather.replace();
+            setTimeout(() => {
+                copyBtn.innerHTML = `<i data-feather="copy" class="w-5 h-5"></i>`;
+                feather.replace();
+            }, 2000);
+        }
+
         function attachLoginHandlers() {
             document.getElementById('login-form')?.addEventListener('submit', handleLogin);
             document.getElementById('forgot-password-link')?.addEventListener('click', handlePasswordReset);
@@ -427,6 +455,7 @@
         }
         function attachPaymentHandlers(courseId) {
             document.getElementById('payment-form')?.addEventListener('submit', (e) => handlePaymentSubmit(e, courseId));
+            document.getElementById('copy-upi-btn')?.addEventListener('click', handleCopyUpiId);
         }
         function attachAdminHandlers() {
             document.getElementById('payment-settings-form')?.addEventListener('submit', handleSavePaymentSettings);
